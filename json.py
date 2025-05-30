@@ -227,5 +227,6 @@ string_to_lambda = lambda s: [ "cons", ("true" if bit == '1' else "false"), (str
 #convert string to lambda
 string_to_lambda = lambda s: string_to_lambda(string_to_binary(s))
 
-#simple json function
+#convert a json object to json lambdaw
+#currently only works with strings
 json = lambda s: string_to_lambda(s)
