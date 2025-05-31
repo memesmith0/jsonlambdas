@@ -222,46 +222,43 @@ def krivine(terms):
     stack = []
     env = []
     started = 0
-    while started<16:
-#        print("status:")
-#        print(terms)
-#        print(stack)
-#        print(env)
+    while True:#started<16:
+        print("status:")
+        print(terms)
+        print(stack)
+        print(env)
 
         if started > 0 and len(stack) == 0 and len(env) == 0:
-#            print("end")
+            print("end")
             return terms
         if len(terms) > 1 and terms[0] != -1:
-#            print("app")
+            print("app")
             stack = [[terms[1],env],stack]
             if isinstance(terms[0],list):
                 terms=terms[0]
             else:
                 terms=[terms[0]]
         elif len(terms)==1 and terms[0] == 0:
-#            print("zero")
+            print("zero")
             if isinstance(env[0][0], int):
                 terms=[env[0][0]]
             else:
                 terms=env[0][0]
             env=env[0][1]
         elif terms[0] == -1:
-#            print("abs")
+            print("abs")
             terms=terms[1:]
             if len(terms)==1 and isinstance(terms[0],list):
                 terms=terms[0]
             env=[stack[0],env]
             stack=stack[1]
         elif isinstance(terms[0], int):
-#            print("succ")
+            print("succ")
             terms[0]=terms[0]-1
             env=env[1]
- #           print(terms)
 
         started=started+1
 
-        
-import json
 def replace_lambda_variables(expression, current_depth=0, bound_variables=None):
     if bound_variables is None:
         bound_variables = []
@@ -269,31 +266,60 @@ def replace_lambda_variables(expression, current_depth=0, bound_variables=None):
     if isinstance(expression, list):
         if len(expression) >= 3 and expression[0] == "lambda" and isinstance(expression[1], str):
             variable_name = expression[1]
-            body = expression[2]
+            # Capture all elements from index 2 onwards as the body expressions
+            body_expressions_list = expression[2:] 
 
-            new_scope = {variable_name: 1}
-            bound_variables.append(new_scope)
+            new_scope = {variable_name: 1} # Scope for the current lambda's variable
+            bound_variables.append(new_scope) # Push this new scope onto the stack
 
-            transformed_body = replace_lambda_variables(body, current_depth + 1, bound_variables)
+            transformed_body_elements = []
+            for sub_expr in body_expressions_list: # Recursively process each expression in the body
+                transformed_body_elements.append(
+                    replace_lambda_variables(sub_expr, current_depth + 1, bound_variables)
+                )
 
-            bound_variables.pop()
+            bound_variables.pop() # Remove the scope when exiting this lambda
 
-            return ["lambda", transformed_body]
+            # If the lambda's body consists of only one expression, unwrap it.
+            # Otherwise, keep it as a list (representing a 'begin'-like block of expressions).
+            if len(transformed_body_elements) == 1:
+                final_body = transformed_body_elements[0]
+            else:
+                final_body = transformed_body_elements # If multiple, return as a list
+
+            # Return the lambda expression with its transformed body
+            return ["lambda", final_body]
 
         else:
+            # If it's a general list (not a lambda definition itself)
             transformed_list = []
             for item in expression:
                 transformed_list.append(replace_lambda_variables(item, current_depth, bound_variables))
             return transformed_list
     elif isinstance(expression, str):
+        # If it's a string, check if it's a bound variable
         for i, scope in enumerate(reversed(bound_variables)):
             if expression in scope:
-                return i + 1
-        return expression
+                return i + 1 # Return its De Bruijn index (1-based from closest binder)
+        return expression # Unbound variable, return as is
     else:
+        # Return other types (e.g., numbers, booleans) as is
         return expression
 
 def replace_lambda_in_tree(tree): return [-1 if item == "lambda" else replace_lambda_in_tree(item) if isinstance(item, list) else item for item in tree]
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -310,13 +336,20 @@ def rework_to_tuples(expression, treat_two_as_list_in_this_context=False):
     
     processed_elements = []
     
+    # Propagate treat_two_as_list_in_this_context based on whether the current list starts with -1
+    is_root_call_for_non_minus_one_list = False
     if len(expression) > 0 and expression[0] == -1:
         processed_elements.append(expression[0])
         for item in expression[1:]:
             processed_elements.append(rework_to_tuples(item, treat_two_as_list_in_this_context=True))
     else:
+        # This is a non-minus-one list. For the very top-level call, we might want it to remain a list.
+        # This flag helps distinguish if this is the *initial* call for a list not starting with -1
+        # or a nested one.
+        # However, the treat_two_as_list_in_this_context is already passed down.
         for item in expression:
             processed_elements.append(rework_to_tuples(item, treat_two_as_list_in_this_context))
+
 
     n = len(processed_elements)
 
@@ -328,7 +361,23 @@ def rework_to_tuples(expression, treat_two_as_list_in_this_context=False):
         
         return [-1, _group_list_conditional(content_after_minus_one, treat_two_as_list=True)]
     else:
-        return _group_list_conditional(processed_elements, treat_two_as_list_in_this_context)
+        # This is the critical change:
+        # If the original expression was a list and it's not a -1 led list,
+        # ensure its direct result from _group_list_conditional is a list.
+        # This handles the top-level case where n=2 and treat_two_as_list_in_this_context=False
+        # would otherwise return a tuple.
+        result = _group_list_conditional(processed_elements, treat_two_as_list_in_this_context)
+        
+        # If the original input was a list and the grouped result is a tuple,
+        # convert it back to a list only at the very top level if that's desired behavior
+        # and it wasn't supposed to be a tuple.
+        # The external caller would typically know this.
+        # For the provided input, the top-level is a list.
+        # So, if the result for this branch is a tuple but was derived from a list, convert it.
+        if isinstance(result, tuple) and isinstance(expression, list) and not treat_two_as_list_in_this_context:
+            return list(result)
+        else:
+            return result
 
 
 def _group_list_conditional(items, treat_two_as_list=False):
@@ -341,6 +390,7 @@ def _group_list_conditional(items, treat_two_as_list=False):
         if treat_two_as_list:
             return list(items)
         else:
+            # This is where your tuple originates for n=2 when treat_two_as_list is False
             return (items[0], items[1])
     else:
         # For 3 or more elements, the first pair (a,b) should always be in a list,
@@ -348,9 +398,9 @@ def _group_list_conditional(items, treat_two_as_list=False):
         first_pair = (items[0], items[1])
         remaining_grouped = _group_list_conditional(items[2:], treat_two_as_list)
         
-        # This is the change: always return the result as a list when n >= 3
-        # The (a,b) pair is explicitly wrapped in a list here.
+        # This returns a list for n >= 3
         return [list(first_pair), remaining_grouped]
+
 
 
 
@@ -389,6 +439,11 @@ def subtract_one_from_tree(tree):
 
 def json_lambda(json):
     return krivine(subtract_one_from_tree(rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json)))))
+#     return subtract_one_from_tree(rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json))))
+#    return rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json)))
+#    return replace_lambda_in_tree(replace_lambda_variables(json))
+#    return replace_lambda_variables(json)
+    
 
 #convert string to binary
 string_to_binary = lambda s: ''.join(format(ord(char), '08b') for char in s)
@@ -413,13 +468,75 @@ json2 = lambda s: string_to_lambda2(s)
 
 
     
-expression_1 = [["lambda", "foo",["lambda", "bar", [
+expression_1 = [
 
-                    "foo","bar"
 
-                ]]],
 
-                ["lambda", "x", "x"],                ["lambda", "x", "x"]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#this is in python3
+
+
+
+    #names
+    ["lambda", "true",
+    ["lambda", "false",
+    ["lambda", "cons",
+
+
+     #main
+                 ["cons", "true", ["cons", "false", ["cons", "true", ["cons", "true", "false"]]]]
+
+
+#definitions
+
+
+     #definition of cons
+     ],["lambda", "x", ["lambda", "y", ["lambda", "z", ["z","x","y"]]]]
+
+     #defintion of false
+     ],["lambda", "x", ["lambda", "y", "y"]]
+
+
+     #definition of true
+     ],["lambda", "x", ["lambda", "y", "x"]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]
+
 
 
 
