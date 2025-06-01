@@ -218,47 +218,62 @@
 #
 #The GNU General Public License does not permit incorporating your program into proprietary programs. If your program is a subroutine library, you may consider it more useful to permit linking proprietary applications with the library. If this is what you want to do, use the GNU Lesser General Public License instead of this License. But first, please read <https://www.gnu.org/licenses/why-not-lgpl.html>.
 import json;
-def krivine(terms):
-    stack = []
-    env = []
+
+#this variable helps to debug the krivine machine
+krivine_debugging_77=1
+
+#this is a lambda calculus interpreter
+#https://en.wikipedia.org/wiki/Krivine_machine
+#there are faster interpreters but it is less work to make
+#a krivine machine because it is just four functions
+def krivine(terms,stack,env):
     started = 0
     while True:#started<16:
-        print("status:")
-        print(terms)
-        print(stack)
-        print(env)
+        if krivine_debugging_77=1:
+            print("status:")
+            print(terms)
+            print(stack)
+            print(env)
 
         if started > 0 and len(stack) == 0 and len(env) == 0:
-            print("end")
+            if krivine_debugging_77=1:
+                print("end")
             return terms
         if len(terms) > 1 and terms[0] != -1:
-            print("app")
+            if krivine_debugging_77=1:
+                print("app")
             stack = [[terms[1],env],stack]
             if isinstance(terms[0],list):
                 terms=terms[0]
             else:
                 terms=[terms[0]]
         elif len(terms)==1 and terms[0] == 0:
-            print("zero")
+            if krivine_debugging_77=1:
+                print("zero")
             if isinstance(env[0][0], int):
                 terms=[env[0][0]]
             else:
                 terms=env[0][0]
             env=env[0][1]
         elif terms[0] == -1:
-            print("abs")
+            if krivine_debugging_77=1:
+                print("abs")
             terms=terms[1:]
             if len(terms)==1 and isinstance(terms[0],list):
                 terms=terms[0]
             env=[stack[0],env]
             stack=stack[1]
         elif isinstance(terms[0], int):
-            print("succ")
+            if krivine_debugging_77=1:
+                print("succ")
             terms[0]=terms[0]-1
             env=env[1]
 
-        started=started+1
+        started=started+1#for debugging this adds one but later I want to try to omit this or have it
+        #be started=1
 
+#this function was written by google gemini and it converts json lambdas to de brujins indices
+#https://en.wikipedia.org/wiki/De_Bruijn_index
 def replace_lambda_variables(expression, current_depth=0, bound_variables=None):
     if bound_variables is None:
         bound_variables = []
@@ -307,23 +322,6 @@ def replace_lambda_variables(expression, current_depth=0, bound_variables=None):
         return expression
 
 def replace_lambda_in_tree(tree): return [-1 if item == "lambda" else replace_lambda_in_tree(item) if isinstance(item, list) else item for item in tree]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -436,9 +434,10 @@ def subtract_one_from_tree(tree):
         return tree
 
 
-
+#this is the "fastlisp" interpreter
 def json_lambda(json):
-    return krivine(subtract_one_from_tree(rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json)))))
+    return krivine(subtract_one_from_tree(rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json)))),[],[])
+    #these commented out bits are so I can check the output of each layer of my pipeline
 #     return subtract_one_from_tree(rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json))))
 #    return rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json)))
 #    return replace_lambda_in_tree(replace_lambda_variables(json))
@@ -460,47 +459,42 @@ string_to_lambda = lambda s: (
     if s else "false"
 )
 
-#convert string to lambda
-string_to_lambda2 = lambda s: string_to_lambda(string_to_binary(s))
+#so what this function does is let us embed json object inside of jsonlambdas
+#so we can have a lambda which returns a json object ["lambda", "x', json2( { "key1": "value", "key2": "value" })]
+#currently only works with strings!
+json2 = lambda s: string_to_lambda(string_to_binary(s))
 
-#simple json function
-json2 = lambda s: string_to_lambda2(s)
+#so this is our simple jsonlambdas program and it returns a linked list containing:
+#["true",["false",["true",["true","false"]]]]
+#note that we have to implement cons true and false using lambdas
+
+expression_1 = [
+
+    #we add some space so we can visualize our fastlisp program by itself
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     
-expression_1 = [
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#this is in python3
-
-
-
+#this is a polyglot for python3 and javascript
     #names
     ["lambda", "true",
     ["lambda", "false",
     ["lambda", "cons",
-
-
+     
      #main
+     #this main program uses the three programs we named collectively to build
+     #a list containing true false true and true
                  ["cons", "true", ["cons", "false", ["cons", "true", ["cons", "true", "false"]]]]
 
 
@@ -532,7 +526,7 @@ expression_1 = [
 
 
 
-
+#here we end the dramatic whitespace
 
 
 ]
@@ -540,5 +534,5 @@ expression_1 = [
 
 
 
-
+#here we are running our json lambda program and printing the result
 print(json_lambda(expression_1))
