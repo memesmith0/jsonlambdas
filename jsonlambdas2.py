@@ -401,24 +401,10 @@ def _group_list_conditional(items, treat_two_as_list=False):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#so our function that converts to de brujins notation is off by 1 so rather than
+#fix that function I have opted to waste compute cycles mapping the entire tree
+#to an add 1 function unless the value is -1
+#written by gemini
 
 def subtract_one_from_tree(tree):
     if isinstance(tree, list):
