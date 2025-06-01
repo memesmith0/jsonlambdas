@@ -326,7 +326,8 @@ def replace_lambda_in_tree(tree): return [-1 if item == "lambda" else replace_la
 
 
 
-
+#I am not sure what datastructure that the krivine machine expects to take as
+#inputs but it makes my job easier if I format everything into tuples
 
 def rework_to_tuples(expression, treat_two_as_list_in_this_context=False):
     if not isinstance(expression, list):
