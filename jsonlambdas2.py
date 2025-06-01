@@ -321,14 +321,11 @@ def replace_lambda_variables(expression, current_depth=0, bound_variables=None):
         # Return other types (e.g., numbers, booleans) as is
         return expression
 
+#this does some minor transformation to the lambda which converts the string "lambda" in the tree into -1
 def replace_lambda_in_tree(tree): return [-1 if item == "lambda" else replace_lambda_in_tree(item) if isinstance(item, list) else item for item in tree]
-
-
-
 
 #I am not sure what datastructure that the krivine machine expects to take as
 #inputs but it makes my job easier if I format everything into tuples
-
 def rework_to_tuples(expression, treat_two_as_list_in_this_context=False):
     if not isinstance(expression, list):
         return expression
@@ -382,13 +379,10 @@ def _group_list_conditional(items, treat_two_as_list=False):
         # This returns a list for n >= 3
         return [list(first_pair), remaining_grouped]
 
-
-
 #so our function that converts to de brujins notation is off by 1 so rather than
 #fix that function I have opted to waste compute cycles mapping the entire tree
 #to an add 1 function unless the value is -1
 #written by gemini
-
 def subtract_one_from_tree(tree):
     if isinstance(tree, list):
         return [subtract_one_from_tree(item) for item in tree]
@@ -402,7 +396,6 @@ def subtract_one_from_tree(tree):
     else:
         return tree
 
-
 #this is the "fastlisp" interpreter
 def json_lambda(json):
     return krivine(subtract_one_from_tree(rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json)))),[],[])
@@ -411,7 +404,6 @@ def json_lambda(json):
 #    return rework_to_tuples(replace_lambda_in_tree(replace_lambda_variables(json)))
 #    return replace_lambda_in_tree(replace_lambda_variables(json))
 #    return replace_lambda_variables(json)
-    
 
 #convert string to binary
 string_to_binary = lambda s: ''.join(format(ord(char), '08b') for char in s)
@@ -438,23 +430,6 @@ json2 = lambda s: string_to_lambda(string_to_binary(s))
 #note that we have to implement cons true and false using lambdas
 
 expression_1 = [
-
-    #we add some space so we can visualize our fastlisp program by itself
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 #this is a polyglot for python3 and javascript
     #names
     ["lambda", "true",
@@ -466,9 +441,7 @@ expression_1 = [
      #a list containing true false true and true
                  ["cons", "true", ["cons", "false", ["cons", "true", ["cons", "true", "false"]]]]
 
-
 #definitions
-
 
      #definition of cons
      ],["lambda", "x", ["lambda", "y", ["lambda", "z", ["z","x","y"]]]]
@@ -479,28 +452,7 @@ expression_1 = [
 
      #definition of true
      ],["lambda", "x", ["lambda", "y", "x"]]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#here we end the dramatic whitespace
-
-
 ]
-
-
 
 
 #here we are running our json lambda program and printing the result
