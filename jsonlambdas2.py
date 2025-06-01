@@ -333,21 +333,15 @@ def rework_to_tuples(expression, treat_two_as_list_in_this_context=False):
         return expression
     
     processed_elements = []
-    
-    # Propagate treat_two_as_list_in_this_context based on whether the current list starts with -1
+
     is_root_call_for_non_minus_one_list = False
     if len(expression) > 0 and expression[0] == -1:
         processed_elements.append(expression[0])
         for item in expression[1:]:
             processed_elements.append(rework_to_tuples(item, treat_two_as_list_in_this_context=True))
     else:
-        # This is a non-minus-one list. For the very top-level call, we might want it to remain a list.
-        # This flag helps distinguish if this is the *initial* call for a list not starting with -1
-        # or a nested one.
-        # However, the treat_two_as_list_in_this_context is already passed down.
         for item in expression:
             processed_elements.append(rework_to_tuples(item, treat_two_as_list_in_this_context))
-
 
     n = len(processed_elements)
 
@@ -359,19 +353,7 @@ def rework_to_tuples(expression, treat_two_as_list_in_this_context=False):
         
         return [-1, _group_list_conditional(content_after_minus_one, treat_two_as_list=True)]
     else:
-        # This is the critical change:
-        # If the original expression was a list and it's not a -1 led list,
-        # ensure its direct result from _group_list_conditional is a list.
-        # This handles the top-level case where n=2 and treat_two_as_list_in_this_context=False
-        # would otherwise return a tuple.
         result = _group_list_conditional(processed_elements, treat_two_as_list_in_this_context)
-        
-        # If the original input was a list and the grouped result is a tuple,
-        # convert it back to a list only at the very top level if that's desired behavior
-        # and it wasn't supposed to be a tuple.
-        # The external caller would typically know this.
-        # For the provided input, the top-level is a list.
-        # So, if the result for this branch is a tuple but was derived from a list, convert it.
         if isinstance(result, tuple) and isinstance(expression, list) and not treat_two_as_list_in_this_context:
             return list(result)
         else:
